@@ -9,10 +9,16 @@ import uuid
 import video_database
 import matplotlib.pyplot as plt
 
+
+# Since the face cascade has some false positives, we also check that the pedestrian cascade detects people
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+pedestrian_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'visionary.net_pedestrian_cascade_web_LBP.xml')
 def detect_faces(img):
-    # face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # check if there are pedestrains
+    pedestrains = pedestrian_cascade.detectMultiScale(gray, 1.1, 4)
+    if len(pedestrains) == 0:
+        return ()
     faces = face_cascade.detectMultiScale(gray, 1.1, 4)
     return faces
 
@@ -110,7 +116,7 @@ class DataCreator:
                 os.makedirs(video_out_dir, exist_ok=True)
                 try:
                     self._filter_video(os.path.join(temp_dir, filename), video_out_dir, video_fps)
-                except cv2.error:
+                except cv2.error as e:
                     continue
 
 
@@ -139,6 +145,7 @@ class DataCreator:
         :param test_split: the percentage of videos that will be part of the test dataset
         """
 
+        random.seed(4242)
         # split videos
         videos = video_links.copy()
         val_links = random.sample(videos, int(val_split * len(video_links)))
@@ -163,5 +170,5 @@ class DataCreator:
 
 
 if __name__ == '__main__':
-    dc = DataCreator(frame_skip=3, resolution=(336, 336), max_frames_per_video=150)
+    dc = DataCreator(frame_skip=0.75, resolution=(336, 336), max_frames_per_video=150)
     dc.create_data(video_database.videos)
